@@ -210,6 +210,8 @@ class RedmapperCalibrator(object):
 
         runpath = os.path.join(calparent, runpath_only)
 
+        self.config.logger.info("WILL OUTPUT CONFIG TO --> %s" % (runpath))
+
         if not os.path.isdir(runpath):
             os.makedirs(runpath)
 
@@ -277,6 +279,8 @@ class RedmapperCalibrator(object):
 
         self.config.output_yaml(os.path.join(runpath, 'run_default.yml'))
 
+        self.config.logger.info("HAVE OUTPUT CONFIG TO --> %s" % (os.path.join(runpath, 'run_default.yml')))
+
         return (new_bkgfile, new_zreds)
 
 class RedmapperCalibrationIteration(object):
@@ -339,9 +343,11 @@ class RedmapperCalibrationIteration(object):
             self.config.d.nside = self.config.nside
 
             if self.config.galfile_pixelized:
+                self.config.logger.info("Using pixelized galfile...")
                 zredRunpix = ZredRunPixels(self.config)
                 zredRunpix.run()
             else:
+                self.config.logger.info("NOT using pixelized galfile...")
                 zredRuncat = ZredRunCatalog(self.config)
                 zredRuncat.run(self.config.galfile, self.config.zredfile)
 

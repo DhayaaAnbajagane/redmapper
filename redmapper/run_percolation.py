@@ -273,7 +273,7 @@ class RunPercolation(ClusterRunner):
             z_lambda, z_lambda_e = zlam.calc_zlambda(cluster.redshift, self.mask, calc_err=False, calcpz=False)
 
             # Check that this is a valid solution before continuing
-            if z_lambda < 0.0:
+            if z_lambda < self.config.zlambda_epsilon:
                 bad = True
                 self._reset_bad_values(cluster)
                 return bad

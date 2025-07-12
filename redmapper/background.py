@@ -442,6 +442,10 @@ class BackgroundGenerator(object):
         zbins_use = self.zbins[zbinmark]
         zrange_use = np.array([zbins_use[0], zbins_use[-1] + self.config.bkg_zbinsize])
 
+
+        self.config.logger.info("STARTED %.4f < z < %.4f in %.1f seconds" % (zbins_use[0], zbins_use[-1],
+                                                                              time.time() - starttime))
+
         # We need to load in the red sequence structure -- just in the specific redshift range
         zredstr = RedSequenceColorPar(self.config.parfile, zrange=zrange_use)
 
@@ -563,7 +567,7 @@ class BackgroundGenerator(object):
             for j in range(self.nlnchisqbins):
                 sigma_lng_sub[:, j, i] = field2[:, j] / (self.areas * lnbinsizes)
 
-        self.config.logger.info("Finished %.2f < z < %.2f in %.1f seconds" % (zbins_use[0], zbins_use[-1],
+        self.config.logger.info("Finished %.4f < z < %.4f in %.1f seconds" % (zbins_use[0], zbins_use[-1],
                                                                               time.time() - starttime))
 
         return (zbinmark, sigma_g_sub, sigma_lng_sub)

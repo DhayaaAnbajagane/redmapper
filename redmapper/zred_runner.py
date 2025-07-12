@@ -218,7 +218,9 @@ class ZredRunPixels(object):
 
         starttime = time.time()
 
+        print(indices)
         if not self.single_process:
+            self.config.logger.info("RUNNING %d INDICES IN PARALLEL... WITH %d" % (len(indices), self.config.calib_nproc))
             mp_ctx = multiprocessing.get_context("fork")
             pool = mp_ctx.Pool(processes=self.config.calib_nproc)
             retvals = pool.map(self._worker, indices, chunksize=1)
@@ -258,6 +260,9 @@ class ZredRunPixels(object):
         outfile: `str`
            zredfile that was saved
         """
+
+        self.config.logger.info("STARTING WITH INDEX %d" % index)
+
         # Read in just one single pixel
         galaxies = GalaxyCatalog.from_galfile(self.config.galfile,
                                               nside=self.galtable.nside,
@@ -287,6 +292,8 @@ class ZredRunPixels(object):
         outfile = os.path.join(self.zredpath, outfile_nopath)
 
         fitsio.write(outfile, zreds, clobber=True)
+
+        self.config.logger.info("ENDING WITH INDEX %d" % index)
 
         return (index, outfile)
 
