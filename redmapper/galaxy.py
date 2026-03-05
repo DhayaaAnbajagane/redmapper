@@ -659,6 +659,23 @@ class GalaxyCatalogMaker(object):
             self.y_ind = info_dict['Y_IND']
         except KeyError:
             self.y_ind = None
+        try:
+            self.F106_ind = info_dict['F106_IND']
+        except KeyError:
+            self.F106_ind = None
+        try:
+            self.F129_ind = info_dict['F129_IND']
+        except KeyError:
+            self.F129_ind = None
+        try:
+            self.F158_ind = info_dict['F158_IND']
+        except KeyError:
+            self.F158_ind = None
+        try:
+            self.F184_ind = info_dict['F184_IND']
+        except KeyError:
+            self.F184_ind = None
+        
 
         self.filename = '%s_master_table.fit' % (self.outbase)
 
@@ -765,7 +782,7 @@ class GalaxyCatalogMaker(object):
                 # Regular serial writing
 
                 if (self.ngals[pix] == 0) and (os.path.isfile(fname)):
-                    raise RuntimeError("We think there are 0 galaxies in pixel %d, but the file exists." % (pix))
+                    raise RuntimeError("We think there are 0 galaxies in pixel %d, but the file (%s) exists." % (pix, fname))
 
                 if self.ngals[pix] == 0:
                     # Create a new file
@@ -848,6 +865,14 @@ class GalaxyCatalogMaker(object):
             dtype.append(('z_ind', 'i2'))
         if self.y_ind is not None:
             dtype.append(('y_ind', 'i2'))
+        if self.F106_ind is not None:
+            dtype.append(('F106_ind', 'i2'))
+        if self.F129_ind is not None:
+            dtype.append(('F129_ind', 'i2'))
+        if self.F158_ind is not None:
+            dtype.append(('F158_ind', 'i2'))
+        if self.F184_ind is not None:
+            dtype.append(('F184_ind', 'i2'))
 
         tab = Entry(np.zeros(1, dtype=dtype))
 
@@ -881,6 +906,14 @@ class GalaxyCatalogMaker(object):
             tab.z_ind = self.z_ind
         if self.y_ind is not None:
             tab.y_ind = self.y_ind
+        if self.F106_ind is not None:
+            tab.F106_ind = self.F106_ind
+        if self.F129_ind is not None:
+            tab.F129_ind = self.F129_ind
+        if self.F158_ind is not None:
+            tab.F158_ind = self.F158_ind
+        if self.F184_ind is not None:
+            tab.F184_ind = self.F184_ind
 
         hdr = fitsio.FITSHDR()
         hdr['PIXELS'] = 1

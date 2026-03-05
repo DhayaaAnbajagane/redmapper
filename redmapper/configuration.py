@@ -693,6 +693,10 @@ class Configuration(object):
                 gal_stats['survey_mode'] = 1
             elif hdrmode == 'LSST':
                 gal_stats['survey_mode'] = 2
+            elif hdrmode == 'LSST_ROMAN':
+                gal_stats['survey_mode'] = 3
+            elif hdrmode == 'ROMAN':
+                gal_stats['survey_mode'] = 4
             else:
                 raise ValueError("Input galaxy file with unknown mode: %s" % (hdrmode))
 
@@ -738,6 +742,10 @@ class Configuration(object):
                 gal_stats['survey_mode'] = 1
             elif (mode == 'LSST'):
                 gal_stats['survey_mode'] = 2
+            elif mode == 'LSST_ROMAN':
+                gal_stats['survey_mode'] = 3
+            elif mode == 'ROMAN':
+                gal_stats['survey_mode'] = 4
             else:
                 raise ValueError("Input galaxy file with unknown mode: %s" % (mode))
 
@@ -754,6 +762,7 @@ class Configuration(object):
             gal_stats['bands'] = [None]*gal_stats['nmag']
 
             # Figure out the bands...
+            offset = 1000
             for name in main.dtype.names:
                 m = re.search('(.*)_ind', name)
                 if m is None:
@@ -761,7 +770,16 @@ class Configuration(object):
                 if m.groups()[0] == 'ref':
                     continue
                 band = m.groups()[0].lower()
-                gal_stats['bands'][main[name][0]] = band
+                offset = min(offset, main[name][0])
+
+            for name in main.dtype.names:
+                m = re.search('(.*)_ind', name)
+                if m is None:
+                    continue
+                if m.groups()[0] == 'ref':
+                    continue
+                band = m.groups()[0].lower()
+                gal_stats['bands'][main[name][0] - offset] = band
 
             try:
                 gal_stats['galfile_has_truth'] = main['has_truth'][0]
