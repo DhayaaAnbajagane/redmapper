@@ -117,7 +117,7 @@ class VolumeLimitMask(object):
         limmags = zredstr.mstar(zbins) - 2.5 * np.log10(self.vlim_lstar)
 
         # get the reference index
-        ref_ind = self.config.bands.index(self.config.refmag)
+        ref_ind = self.config.bands.index(self.config.refmag.lower())
 
         # Read in the primary depth structure
         sparse_depthmap = healsparse.HealSparseMap.read(self.config.depthfile)
@@ -156,7 +156,7 @@ class VolumeLimitMask(object):
 
             # find mag name thing...
             # Note this is validated in the config read
-            map_ind = self.config.bands.index(self.config.vlim_bands[i])
+            map_ind = self.config.bands.index(self.config.vlim_bands[i].lower())
 
             # match pixels
             a, b = esutil.numpy_util.match(validPixels, validPixels2)

@@ -534,7 +534,7 @@ class Configuration(object):
             raise ValueError("A maskfile is set, but mask_mode is 0 (no mask).  Assuming this is not intended.")
 
         for vlim_band in self.vlim_bands:
-            if vlim_band not in self.bands:
+            if vlim_band.lower() not in self.bands:
                 raise ValueError("vlim_band %s not in list of bands!" % (vlim_band))
 
         if self.bkg_local_annuli[1] <= self.bkg_local_annuli[0]:
