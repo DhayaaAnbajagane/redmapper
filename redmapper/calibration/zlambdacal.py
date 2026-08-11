@@ -225,7 +225,10 @@ class ZLambdaCalibrator(object):
 
         # Confirm that we have enough clusters to do the fit
         hist, _ = np.histogram(cat.z[use], bins=nodes)
+
         if hist.min() == 0:
+            inds = np.where(hist == 0)[0]
+            for i in inds: print(f"NO CLUSTERS IN {nodes[i]} < z < {nodes[i+1]}")
             raise RuntimeError("Calibration of zlambda correction cannot continue, as "
                                "there are redshift bins with no cluster spectra. "
                                "You must either reduce config.calib_zlambda_minlambda or "

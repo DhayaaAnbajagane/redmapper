@@ -44,6 +44,12 @@ class ZredColor(object):
         self.nz = self.zredstr.z.size - 1
         self.notextrap, = np.where(~self.zredstr.extrapolated)
 
+        #DA: The last index of the z-spline is always being extrapolated
+        #so let's make sure it is set as such. Otherwise, the number of
+        #notextrapolated bins extends past the number of available z-spline nodes....
+        if np.isclose(self.zredstr.z[-1], 1000.0):
+            self.notextrap[-1] = False
+            
         if self.zrange is None:
             self.zbinstart = 0
             self.zbinstop = self.nz - 1
