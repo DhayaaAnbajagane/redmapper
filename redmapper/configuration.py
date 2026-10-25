@@ -357,6 +357,10 @@ class Configuration(object):
     firstpass_beta = ConfigField(default=0.0, required=True)
     firstpass_niter = ConfigField(default=2, required=True)
     firstpass_minlambda = ConfigField(default=3.0, required=True)
+    # When > 0 in a pixel run with zred seeds, only seeds within this many border radii of the
+    # pixel are run, with the radius evaluated at each seed's own redshift (compute_border uses
+    # the radius at zrange[0] for all seeds). Galaxies are still read over the full border.
+    firstpass_seed_border_scale = ConfigField(default=0.0, required=False)
     firstpass_centerclass = ConfigField(default='CenteringBCG', required=True)
 
     likelihoods_r0 = ConfigField(default=1.0, required=True)
@@ -1030,7 +1034,22 @@ class Configuration(object):
            Border radius for overlapping tiles for parallel runs.
         """
 
-        maxdist = 1.05 * self.percolation_rmask_0 * (300. / 100.)**self.percolation_rmask_beta
-        radius = maxdist / (np.radians(1.) * self.cosmo.Da(0, self.zrange[0]))
+        return 3.0 * self.compute_border_radius(self.zrange[0])
 
-        return 3.0 * radius
+    def compute_border_radius(self, z):
+        """
+        Compute the angular radius (degrees) of the largest expected cluster at
+        redshift z; compute_border() is 3 times this at zrange[0].
+
+        Parameters
+        ----------
+        z: `float` or `np.ndarray`
+           Redshift(s)
+
+        Returns
+        -------
+        radius: `float` or `np.ndarray`
+           Radius in degrees.
+        """
+        maxdist = 1.05 * self.percolation_rmask_0 * (300. / 100.)**self.percolation_rmask_beta
+        return maxdist / (np.radians(1.) * self.cosmo.Da(0, z))

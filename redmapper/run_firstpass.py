@@ -4,6 +4,7 @@ import fitsio
 import numpy as np
 import esutil
 import os
+import hpgeom as hpg
 
 from .cluster import ClusterCatalog
 from .catalog import Catalog
@@ -15,6 +16,27 @@ from .depthmap import DepthMap
 from .zlambda import Zlambda
 from .zlambda import ZlambdaCorrectionPar
 from .cluster_runner import ClusterRunner
+
+def _dist_to_pixel(ra, dec, nside, pixel, step=256, chunk=50000):
+    """
+    Angular distance (degrees) from each position to a ring-ordered healpix
+    pixel, zero for positions inside it.  The boundary is sampled with
+    `step` points per side (spacing < 0.01 deg for nside 32).
+    """
+    def _unit(r, d):
+        r, d = np.radians(r), np.radians(d)
+        return np.stack([np.cos(d) * np.cos(r), np.cos(d) * np.sin(r), np.sin(d)], axis=1)
+
+    inside = hpg.angle_to_pixel(nside, ra, dec, nest=False) == pixel
+    bra, bdec = hpg.boundaries(nside, pixel, step=step, nest=False)
+    bvec = _unit(np.atleast_1d(bra).ravel(), np.atleast_1d(bdec).ravel())
+    vec = _unit(ra, dec)
+    dist = np.zeros(ra.size)
+    for i in range(0, ra.size, chunk):
+        cosd = np.clip(vec[i: i + chunk] @ bvec.T, -1.0, 1.0)
+        dist[i: i + chunk] = np.degrees(np.arccos(cosd.max(axis=1)))
+    dist[inside] = 0.0
+    return dist
 
 ###################################################
 # Order of operations:
@@ -199,6 +221,20 @@ class RunFirstPass(ClusterRunner):
             mlim = mstar - 2.5 * np.log10(self.config.lval_reference)
 
             good, = np.where(self.gals.refmag[use] < mlim)
+
+            if (self.config.firstpass_seed_border_scale > 0 and len(self.config.d.hpix) == 1 and
+                    self.config.d.nside > 0 and good.size > 0):
+                # Only seed clusters close enough to the pixel to matter, with the border
+                # radius evaluated at each seed's own redshift.
+                idx = use[good]
+                dist = _dist_to_pixel(self.gals.ra[idx], self.gals.dec[idx],
+                                      self.config.d.nside, self.config.d.hpix[0])
+                radius = self.config.compute_border_radius(np.clip(self.gals.zred[idx], self.config.zrange[0], None))
+                near = dist <= self.config.firstpass_seed_border_scale * radius
+                self.config.logger.info("%s: keeping %d of %d zred seeds within %.1f border radii of the pixel" %
+                                        (self.hpix_logstr, near.sum(), good.size,
+                                         self.config.firstpass_seed_border_scale))
+                good = good[near]
 
             if good.size == 0:
                 self.cat = None
