@@ -144,6 +144,29 @@ class FitterTestCase(unittest.TestCase):
         testing.assert_almost_equal(slopepars3, [-0.01054824, -0.01296713, -0.01605626], 4)
         testing.assert_almost_equal(scatpars3, [0.03453208, 0.04054536, 0.03832689], 4)
 
+    def test_red_sequence_scatter_both_band_errors(self):
+        """
+        Test that redmapper.fitters.RedSequenceFitter recovers the intrinsic scatter
+        when both bands of the colour have errors, and that the likelihood does not
+        modify the stored errors.
+        """
+        rng = np.random.RandomState(seed=12345)
+        ngal = 20000
+        z = rng.uniform(low=0.2, high=0.6, size=ngal)
+        mag_err = np.full((ngal, 2), 0.02)
+        sig_int = 0.05
+        color = 1.0 + 0.5*z + rng.normal(scale=np.sqrt(sig_int**2. + 2*0.02**2.), size=ngal)
+
+        nodes = np.array([0.2, 0.4, 0.6])
+        rsfitter = RedSequenceFitter(nodes, z, color, mag_err.copy(),
+                                     probs=np.ones(ngal), bkgs=np.zeros(ngal),
+                                     scatter_max=np.full(nodes.size, 0.2), use_scatter_prior=True)
+        scatpars, = rsfitter.fit(1.0 + 0.5*nodes, np.zeros(nodes.size), np.full(nodes.size, 0.03),
+                                 fit_scatter=True)
+
+        testing.assert_array_equal(rsfitter._mag_err2s, mag_err**2.)
+        testing.assert_allclose(scatpars, sig_int, atol=0.003)
+
     def test_zred_correction_fitter(self):
         """
         Run tests of redmapper.fitters.CorrectionFitter
