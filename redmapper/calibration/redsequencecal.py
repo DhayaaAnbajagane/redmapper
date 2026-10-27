@@ -706,7 +706,8 @@ class RedSequenceCalibrator(object):
         """
         Set the off-diagonal elements of the covariance matrix.
 
-        These are just set to self.config.calib_covmat_constant
+        The correlation of each colour pair is self.config.calib_covmat_corr[j, k] if that
+        matrix is set, otherwise self.config.calib_covmat_constant for every pair.
 
         Parameters
         ----------
@@ -718,12 +719,17 @@ class RedSequenceCalibrator(object):
 
         ncol = self.config.nmag - 1
 
+        if np.size(self.config.calib_covmat_corr) > 0:
+            corr = np.asarray(self.config.calib_covmat_corr, dtype=np.float64)
+        else:
+            corr = np.full((ncol, ncol), self.config.calib_covmat_constant, dtype=np.float64)
+
         for j in range(ncol):
             for k in range(j + 1, ncol):
-                self.pars.sigma[j, k, :] = self.config.calib_covmat_constant
+                self.pars.sigma[j, k, :] = corr[j, k]
                 self.pars.sigma[k, j, :] = self.pars.sigma[j, k, :]
 
-                self.pars.covmat_amp[j, k, :] = self.config.calib_covmat_constant * self.pars.sigma[j, j, :] * self.pars.sigma[k, k, :]
+                self.pars.covmat_amp[j, k, :] = corr[j, k] * self.pars.sigma[j, j, :] * self.pars.sigma[k, k, :]
                 self.pars.covmat_amp[k, j, :] = self.pars.covmat_amp[j, k, :]
 
     def _calc_offdiagonal_pars_old(self, gals, doRaise=True):

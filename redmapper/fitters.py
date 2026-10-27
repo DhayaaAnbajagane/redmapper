@@ -340,7 +340,7 @@ class RedSequenceFitter(object):
             if 0 in self._fit_err_ratio_ind:
                 e2 = (err_ratios**2.)*self._mag_err2s[:, 0]
             else:
-                e2 = self._mag_err2s[:, 0]
+                e2 = self._mag_err2s[:, 0].copy()
             if 1 in self._fit_err_ratio_ind:
                 e2 += (err_ratios**2.)*self._mag_err2s[:, 1]
             else:
@@ -416,7 +416,7 @@ class RedSequenceFitter(object):
             if 0 in self._fit_err_ratio_ind:
                 e2 = (err_ratios**2.)*self._mag_err2s[:, 0]
             else:
-                e2 = self._mag_err2s[:, 0]
+                e2 = self._mag_err2s[:, 0].copy()
             if 1 in self._fit_err_ratio_ind:
                 e2 += (err_ratios**2.)*self._mag_err2s[:, 1]
             else:

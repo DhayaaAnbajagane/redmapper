@@ -67,8 +67,11 @@ class Background(object):
         nzbins = obkg.zbins.size
 
         # Set up some arrays to populate
+        # The chisq and ln(chisq) grids are independent: they only both have 40 bins for the
+        # default chisq_max = 20 (0.5 bins) and lnchisq range [-2, 6] (0.2 bins), so each must
+        # be looped over its own length.
         sigma_g_new = np.zeros((nrefmagbins, nchisqbins, nzbins))
-        sigma_lng_new = np.zeros((nrefmagbins, nchisqbins, nzbins))
+        sigma_lng_new = np.zeros((nrefmagbins, nlnchisqbins, nzbins))
 
         # Do linear interpolation to get the sigma_g value
         # between the raw background points.
@@ -77,6 +80,7 @@ class Background(object):
             for j in range(nchisqbins):
                 sigma_g_new[:,j,i] = np.interp(refmagbins, obkg.refmagbins, obkg.sigma_g[:,j,i])
                 sigma_g_new[:,j,i] = np.where(sigma_g_new[:,j,i] < 0, 0, sigma_g_new[:,j,i])
+            for j in range(nlnchisqbins):
                 sigma_lng_new[:,j,i] = np.interp(refmagbins, obkg.refmagbins, obkg.sigma_lng[:,j,i])
                 sigma_lng_new[:,j,i] = np.where(sigma_lng_new[:,j,i] < 0, 0, sigma_lng_new[:,j,i])
 

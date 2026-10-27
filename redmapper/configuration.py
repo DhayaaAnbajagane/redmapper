@@ -274,7 +274,11 @@ class Configuration(object):
     calib_color_maxnodes = ConfigField(isArray=True, default=np.array([-1.0]))
     calib_covmat_maxnodes = ConfigField(isArray=True, default=np.array([-1.0]))
     calib_covmat_nodesize = ConfigField(default=0.15)
-    calib_covmat_constant = ConfigField(default=0.9)
+    # Intrinsic correlation between red-sequence colours: either one constant for every pair
+    # (calib_covmat_constant) or a full ncol x ncol correlation matrix (calib_covmat_corr).
+    # Setting both is an error; setting neither gives a constant 0.9.
+    calib_covmat_constant = ConfigField(default=None)
+    calib_covmat_corr = ConfigField(isArray=True, default=[])
     calib_corr_nodesize = ConfigField(default=0.05)
     calib_corr_slope_nodesize = ConfigField(default=0.1)
     calib_corr_nocorrslope = ConfigField(default=True)
@@ -353,6 +357,10 @@ class Configuration(object):
     firstpass_beta = ConfigField(default=0.0, required=True)
     firstpass_niter = ConfigField(default=2, required=True)
     firstpass_minlambda = ConfigField(default=3.0, required=True)
+    # When > 0 in a pixel run with zred seeds, only seeds within this many border radii of the
+    # pixel are run, with the radius evaluated at each seed's own redshift (compute_border uses
+    # the radius at zrange[0] for all seeds). Galaxies are still read over the full border.
+    firstpass_seed_border_scale = ConfigField(default=0.0, required=False)
     firstpass_centerclass = ConfigField(default='CenteringBCG', required=True)
 
     likelihoods_r0 = ConfigField(default=1.0, required=True)
@@ -509,6 +517,7 @@ class Configuration(object):
                            'calib_color_maxnodes', 'calib_covmat_maxnodes'],
                            self.nmag - 1)
                            #'calib_color_order'], self.nmag - 1)
+        self._resolve_covmat_corr()
 
         # redmagic size checks
         self._set_lengths(['redmagic_n0s', 'redmagic_etas', 'redmagic_names',
@@ -641,6 +650,45 @@ class Configuration(object):
                 setattr(self, key, d[key])
             except TypeError:
                 raise TypeError("Error with type of variable %s" % (key))
+
+    def _resolve_covmat_corr(self):
+        """
+        Internal method to check the red-sequence colour correlation settings.
+
+        calib_covmat_constant and calib_covmat_corr are mutually exclusive. With neither
+        set, calib_covmat_constant becomes 0.9. A calib_covmat_corr matrix must be
+        ncol x ncol, symmetric, with unit diagonal, |r| < 1 off the diagonal, and
+        positive definite.
+
+        Raises
+        ------
+        ValueError: if both are set, or if the matrix is not a valid correlation matrix.
+        """
+        ncol = self.nmag - 1
+        has_matrix = np.size(self.calib_covmat_corr) > 0
+
+        if has_matrix and self.calib_covmat_constant is not None:
+            raise ValueError("Set only one of calib_covmat_constant (one correlation for all colour "
+                             "pairs) and calib_covmat_corr (full correlation matrix), not both.")
+        if not has_matrix:
+            if self.calib_covmat_constant is None:
+                self.calib_covmat_constant = 0.9
+            return
+
+        corr = np.asarray(self.calib_covmat_corr, dtype=np.float64)
+        if corr.shape != (ncol, ncol):
+            raise ValueError("calib_covmat_corr must be a %d x %d matrix (one row/column per colour); got shape %s"
+                             % (ncol, ncol, str(corr.shape)))
+        if not np.allclose(corr, corr.T):
+            raise ValueError("calib_covmat_corr must be symmetric.")
+        if not np.allclose(np.diag(corr), 1.0):
+            raise ValueError("calib_covmat_corr must have 1 on the diagonal.")
+        if np.any(np.abs(corr[~np.eye(ncol, dtype=bool)]) >= 1.0):
+            raise ValueError("calib_covmat_corr off-diagonal entries must satisfy |r| < 1.")
+        if np.linalg.eigvalsh(corr).min() <= 0.0:
+            raise ValueError("calib_covmat_corr is not positive definite (smallest eigenvalue %.3g)."
+                             % (np.linalg.eigvalsh(corr).min()))
+        self.calib_covmat_corr = corr
 
     def _set_lengths(self, l, length):
         """
@@ -986,7 +1034,22 @@ class Configuration(object):
            Border radius for overlapping tiles for parallel runs.
         """
 
-        maxdist = 1.05 * self.percolation_rmask_0 * (300. / 100.)**self.percolation_rmask_beta
-        radius = maxdist / (np.radians(1.) * self.cosmo.Da(0, self.zrange[0]))
+        return 3.0 * self.compute_border_radius(self.zrange[0])
 
-        return 3.0 * radius
+    def compute_border_radius(self, z):
+        """
+        Compute the angular radius (degrees) of the largest expected cluster at
+        redshift z; compute_border() is 3 times this at zrange[0].
+
+        Parameters
+        ----------
+        z: `float` or `np.ndarray`
+           Redshift(s)
+
+        Returns
+        -------
+        radius: `float` or `np.ndarray`
+           Radius in degrees.
+        """
+        maxdist = 1.05 * self.percolation_rmask_0 * (300. / 100.)**self.percolation_rmask_beta
+        return maxdist / (np.radians(1.) * self.cosmo.Da(0, z))

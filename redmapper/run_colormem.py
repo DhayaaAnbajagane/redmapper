@@ -134,7 +134,8 @@ class RunColormem(ClusterRunner):
             raise RuntimeError("Programmer error with illegal mode")
 
         lam = cluster.calc_richness_fit(self.mask, mode, calc_err=False,
-                                        centcolor_in=cluster.redcolor[mode])
+                                        centcolor_in=cluster.redcolor[mode],
+                                        sigint=self.config.calib_colormem_sigint[m])
 
         ind = np.argmin(cluster.neighbors.r)
         cluster.p_bcg = cluster.neighbors.pmem[ind]
